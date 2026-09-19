@@ -295,6 +295,10 @@ class Overlay(QWidget):
         if self.wayland:
             cx += float(values["OFFSET_X"])
             cy += float(values["OFFSET_Y"])
+        if not bool_value(values["ANTIALIAS"]):
+            # Keep non-antialiased circles/dots symmetric on the pixel grid.
+            cx = round(cx * 2) / 2
+            cy = round(cy * 2) / 2
         style = values["STYLE"].lower()
 
         def square(x, y, side, fill):

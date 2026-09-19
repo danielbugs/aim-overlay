@@ -589,6 +589,10 @@ def draw(widget, cr):
     if wayland:
         cx += offset_x
         cy += offset_y
+    if not antialias:
+        # Keep non-antialiased circles/dots symmetric on the pixel grid.
+        cx = round(cx * 2) / 2
+        cy = round(cy * 2) / 2
     half = max(0.5, thickness / 2)
     draw_gap = 0.0 if style == "plus" else gap
     cr.set_antialias(cairo.Antialias.BEST if antialias else cairo.Antialias.NONE)
