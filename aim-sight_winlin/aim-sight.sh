@@ -29,6 +29,7 @@ THICKNESS="${AIM_SIGHT_THICKNESS:-2.0}"
 OPACITY="${AIM_SIGHT_OPACITY:-0.75}"
 OUTLINE="${AIM_SIGHT_OUTLINE:-no}"
 OUTLINE_THICKNESS="${AIM_SIGHT_OUTLINE_THICKNESS:-1.0}"
+ANTIALIAS="yes"
 DOT="${AIM_SIGHT_DOT:-yes}"
 DOT_SIZE="${AIM_SIGHT_DOT_SIZE:-2.0}"
 OFFSET_X="${AIM_SIGHT_OFFSET_X:-0.0}"
@@ -62,6 +63,7 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
             'OPACITY=0.75' \
             'OUTLINE=no' \
             'OUTLINE_THICKNESS=1.0' \
+            'ANTIALIAS=yes' \
             'DOT=yes' \
             'DOT_SIZE=2.0' \
             'OFFSET_X=0.0' \
@@ -88,6 +90,7 @@ write_settings() {
         "OPACITY=$OPACITY" \
         "OUTLINE=$OUTLINE" \
         "OUTLINE_THICKNESS=$OUTLINE_THICKNESS" \
+        "ANTIALIAS=$ANTIALIAS" \
         "DOT=$DOT" \
         "DOT_SIZE=$DOT_SIZE" \
         "OFFSET_X=$OFFSET_X" \
@@ -453,7 +456,7 @@ if [[ -n "${DISPLAY:-}" ]]; then
     export GDK_BACKEND=x11
 fi
 
-python3 - "$PID_FILE" "$COLOR" "$STYLE" "$SIZE" "$GAP" "$THICKNESS" "$OPACITY" "$OUTLINE" "$OUTLINE_THICKNESS" "$DOT" "$DOT_SIZE" "$OFFSET_X" "$OFFSET_Y" "$ACTIVE_CONFIG_FILE" <<'PY' &
+python3 - "$PID_FILE" "$COLOR" "$STYLE" "$SIZE" "$GAP" "$THICKNESS" "$OPACITY" "$OUTLINE" "$OUTLINE_THICKNESS" "$ANTIALIAS" "$DOT" "$DOT_SIZE" "$OFFSET_X" "$OFFSET_Y" "$ACTIVE_CONFIG_FILE" <<'PY' &
 import atexit
 import math
 import os
@@ -466,10 +469,11 @@ gi.require_version("Gdk", "3.0")
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gdk, GLib, Gtk
 
-pid_file, color_name, style, size, gap, thickness, opacity, outline_name, outline_thickness, dot_name, dot_size, offset_x, offset_y, config_file = sys.argv[1:]
+pid_file, color_name, style, size, gap, thickness, opacity, outline_name, outline_thickness, antialias_name, dot_name, dot_size, offset_x, offset_y, config_file = sys.argv[1:]
 size, gap, thickness, outline_thickness, dot_size, offset_x, offset_y = map(float, (size, gap, thickness, outline_thickness, dot_size, offset_x, offset_y))
 opacity = max(0.05, min(1.0, float(opacity)))
 outline = outline_name.lower() in ("yes", "true", "1", "on")
+antialias = antialias_name.lower() in ("yes", "true", "1", "on")
 dot = dot_name.lower() in ("yes", "true", "1", "on")
 config_mtime = None
 
@@ -514,7 +518,7 @@ if not rgba.parse(color_name):
 rgba.alpha = opacity
 
 def reload_config():
-    global color_name, style, size, gap, thickness, opacity, outline, outline_thickness, dot, dot_size, offset_x, offset_y, rgba, diameter, config_mtime
+    global color_name, style, size, gap, thickness, opacity, outline, outline_thickness, antialias, dot, dot_size, offset_x, offset_y, rgba, diameter, config_mtime
     try:
         mtime = os.stat(config_file).st_mtime_ns
     except FileNotFoundError:
@@ -540,6 +544,8 @@ def reload_config():
         new_outline_name = values.get("OUTLINE", "yes" if outline else "no")
         new_outline = new_outline_name.lower() in ("yes", "true", "1", "on")
         new_outline_thickness = float(values.get("OUTLINE_THICKNESS", outline_thickness))
+        new_antialias_name = values.get("ANTIALIAS", "yes" if antialias else "no")
+        new_antialias = new_antialias_name.lower() in ("yes", "true", "1", "on")
         new_dot = values.get("DOT", "yes" if dot else "no").lower() in ("yes", "true", "1", "on")
         new_dot_size = float(values.get("DOT_SIZE", dot_size))
         new_offset_x = float(values.get("OFFSET_X", offset_x))
@@ -557,9 +563,9 @@ def reload_config():
         new_rgba.alpha = new_opacity
     except (OSError, ValueError):
         return True  # Ignore a partially edited/invalid file until it is fixed.
-    color_name, style, size, gap, thickness, opacity, outline, outline_thickness, dot, dot_size, offset_x, offset_y, rgba = (
+    color_name, style, size, gap, thickness, opacity, outline, outline_thickness, antialias, dot, dot_size, offset_x, offset_y, rgba = (
         new_color, new_style, new_size, new_gap, new_thickness, new_opacity,
-        new_outline, new_outline_thickness, new_dot, new_dot_size, new_offset_x, new_offset_y, new_rgba
+        new_outline, new_outline_thickness, new_antialias, new_dot, new_dot_size, new_offset_x, new_offset_y, new_rgba
     )
     diameter = int(round((size * 2) + (gap * 2) + (thickness * 2)))
     if not wayland:
@@ -585,6 +591,7 @@ def draw(widget, cr):
         cy += offset_y
     half = max(0.5, thickness / 2)
     draw_gap = 0.0 if style == "plus" else gap
+    cr.set_antialias(cairo.Antialias.BEST if antialias else cairo.Antialias.NONE)
     cr.set_operator(0)  # CAIRO_OPERATOR_CLEAR: transparent everywhere
     cr.paint()
     cr.set_operator(1)  # CAIRO_OPERATOR_SOURCE

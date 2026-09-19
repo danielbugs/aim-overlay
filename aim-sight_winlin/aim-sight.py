@@ -43,6 +43,7 @@ DEFAULTS = {
     "OPACITY": "0.9",
     "OUTLINE": "yes",
     "OUTLINE_THICKNESS": "0.6",
+    "ANTIALIAS": "yes",
     "DOT": "no",
     "DOT_SIZE": "1.0",
     "OFFSET_X": "1.0",
@@ -288,7 +289,7 @@ class Overlay(QWidget):
         gap = float(values["GAP"])
         dot_size = max(1.0, float(values["DOT_SIZE"]))
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, bool_value(values["ANTIALIAS"]))
         painter.fillRect(self.rect(), Qt.GlobalColor.transparent)
         cx, cy = self.width() / 2, self.height() / 2
         if self.wayland:
