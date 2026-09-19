@@ -7,6 +7,8 @@ Requires: PySide6 (``python -m pip install PySide6``)
 from __future__ import annotations
 
 import argparse
+import ctypes
+from ctypes import wintypes
 import math
 import os
 import re
@@ -19,6 +21,25 @@ from pathlib import Path
 from PySide6.QtCore import QPointF, QRect, Qt, QTimer
 from PySide6.QtGui import QColor, QIcon, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon, QWidget
+
+
+WM_NCHITTEST = 0x0084
+HTTRANSPARENT = -1
+GWL_EXSTYLE = -20
+WS_EX_TRANSPARENT = 0x00000020
+WS_EX_NOACTIVATE = 0x08000000
+
+
+class _WindowsMessage(ctypes.Structure):
+    _fields_ = [
+        ("hwnd", wintypes.HWND),
+        ("message", wintypes.UINT),
+        ("w_param", wintypes.WPARAM),
+        ("l_param", wintypes.LPARAM),
+        ("time", wintypes.DWORD),
+        ("point_x", ctypes.c_long),
+        ("point_y", ctypes.c_long),
+    ]
 
 
 if os.name == "nt":
@@ -225,7 +246,12 @@ class Overlay(QWidget):
         self.profile = profile
         self.config_mtime = 0
         self.wayland = bool(os.environ.get("WAYLAND_DISPLAY"))
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool | Qt.WindowType.WindowStaysOnTopHint)
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint
+            | Qt.WindowType.Tool
+            | Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.WindowDoesNotAcceptFocus
+        )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
@@ -273,7 +299,43 @@ class Overlay(QWidget):
                 diameter,
             ))
             self.show()
+            self.configure_windows_input()
         self.update()
+
+    def configure_windows_input(self) -> None:
+        """Make the native Windows window invisible to pointer hit-testing.
+
+        WA_TransparentForMouseEvents only affects Qt's event delivery. Some
+        games still see the overlay during the native Windows hit test and
+        consequently restore the normal mouse cursor over the reticle.
+        """
+        if os.name != "nt" or not self.winId():
+            return
+        user32 = ctypes.windll.user32
+        user32.GetWindowLongPtrW.argtypes = [wintypes.HWND, ctypes.c_int]
+        user32.GetWindowLongPtrW.restype = ctypes.c_ssize_t
+        user32.SetWindowLongPtrW.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_ssize_t]
+        user32.SetWindowLongPtrW.restype = ctypes.c_ssize_t
+        hwnd = wintypes.HWND(int(self.winId()))
+        extended_style = user32.GetWindowLongPtrW(hwnd, GWL_EXSTYLE)
+        user32.SetWindowLongPtrW(
+            hwnd,
+            GWL_EXSTYLE,
+            extended_style | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE,
+        )
+
+    def nativeEvent(self, event_type, message):
+        """Pass Windows pointer hit-tests through to the game below."""
+        if os.name == "nt" and bytes(event_type) == b"windows_generic_MSG":
+            try:
+                native_message = ctypes.cast(
+                    int(message), ctypes.POINTER(_WindowsMessage)
+                ).contents
+                if native_message.message == WM_NCHITTEST:
+                    return True, HTTRANSPARENT
+            except (TypeError, ValueError):
+                pass
+        return super().nativeEvent(event_type, message)
 
     def square(self, painter: QPainter, x: float, y: float, side: float, color: QColor) -> None:
         painter.fillRect(QRect(int(round(x - side / 2)), int(round(y - side / 2)), max(1, int(round(side))), max(1, int(round(side)))), color)
