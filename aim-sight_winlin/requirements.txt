@@ -1,0 +1,2 @@
+# Cross-platform GUI, tray icon, and overlay support.
+PySide6>=6.6,<7

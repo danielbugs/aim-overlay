@@ -1,0 +1,28 @@
+{
+  "ArmLength": 4,
+  "Gap": 2,
+  "LineThickness": 2,
+  "Color": "#FFFFFF",
+  "OutlineColor": "#000000",
+  "OutlineThickness": 1,
+  "CenterDotSize": 2,
+  "ShowCenterDot": false,
+  "Style": "t",
+  "StyleProfiles": {
+    "plus": {"OutlineThickness": 0},
+    "t": {},
+    "classic": {
+      "Color": "#00FF00",
+      "Gap": 2
+    },
+    "dot": {
+      "CenterDotSize": 2
+    },
+    "four_dots": {
+      "CenterDotSize": 2,
+      "Gap": 6
+    }
+  },
+  "OffsetX": 2,
+  "OffsetY": 1
+}
