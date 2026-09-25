@@ -108,7 +108,17 @@ It supports the same core actions and options:
 ./aim-sight.sh stop
 ```
 
-The shell version requires `python3`, GTK 3, PyGObject, Pycairo, and Ayatana AppIndicator 3. Package names vary by distribution. On Debian/Ubuntu-based systems, the required packages are commonly available as:
+The shell version requires `python3`, GTK 3, PyGObject, Pycairo, and Ayatana AppIndicator 3. Package names vary by distribution.
+
+The included installer detects Fedora, Debian/Ubuntu, and Arch-based systems:
+
+```bash
+cd aim-sight_winlin
+chmod +x install-linux-dependencies.sh
+./install-linux-dependencies.sh
+```
+
+On Debian/Ubuntu-based systems, the equivalent packages are commonly available as:
 
 ```bash
 sudo apt install python3 python3-gi python3-cairo gir1.2-gtk-3.0 gir1.2-ayatanaappindicator3-0.1
@@ -127,7 +137,7 @@ The Linux tray menu provides quick access to:
 
 ## Tray icon
 
-When started normally, Aim Sight keeps a tray icon running alongside the overlay. Right-click it to toggle the crosshair, choose a saved profile, open configuration files, reload profiles, restart the overlay, or quit the application.
+When started normally, Aim Sight keeps a tray icon running alongside the overlay. Left-click the tray icon to toggle the crosshair; right-click it to choose a saved profile, open configuration files, reload profiles, restart the overlay, or quit the application.
 
 The Python tray menu includes `Toggle Aim Sight`, profile selection, `Open default.conf`, `Open profiles folder`, `Restart Aim Sight`, `Reload profiles`, and `Quit tray icon`. The Linux shell launcher additionally exposes center-dot and color-cycle shortcuts.
 

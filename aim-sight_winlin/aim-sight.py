@@ -431,10 +431,15 @@ class TrayApp:
         self.icon = self.make_icon()
         self.tray = QSystemTrayIcon(self.icon)
         self.tray.setToolTip("Aim Sight")
+        self.tray.activated.connect(self.on_tray_activated)
         self.menu = QMenu()
         self.tray.setContextMenu(self.menu)
         self.populate_menu()
         self.tray.show()
+
+    def on_tray_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
+        if reason == QSystemTrayIcon.ActivationReason.Trigger:
+            self.overlay.setVisible(not self.overlay.isVisible())
 
     @staticmethod
     def make_icon() -> QIcon:

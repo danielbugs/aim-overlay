@@ -404,6 +404,9 @@ quit_item.connect("activate", cleanup)
 menu.append(quit_item)
 menu.show_all()
 indicator.set_menu(menu)
+# AppIndicator's primary activation is the tray icon's left click. The menu
+# remains the context menu opened by the tray icon's right click.
+indicator.connect("activate", lambda *_: run_action("toggle"))
 indicator.set_secondary_activate_target(toggle_item)
 Gtk.main()
 PY
