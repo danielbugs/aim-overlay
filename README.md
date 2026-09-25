@@ -108,7 +108,7 @@ It supports the same core actions and options:
 ./aim-sight.sh stop
 ```
 
-The shell version requires `python3`, GTK 3, PyGObject, Pycairo, and Ayatana AppIndicator 3. Package names vary by distribution.
+The shell version requires `python3`, GTK 3, PyGObject, Pycairo, and Ayatana AppIndicator 3. It runs the tray and overlay in one native GTK process to avoid duplicating the Python/GTK runtime. On Wayland sessions with XWayland available, it uses XWayland for a reliable click-through input region. Package names vary by distribution.
 
 The included installer detects Fedora, Debian/Ubuntu, and Arch-based systems:
 

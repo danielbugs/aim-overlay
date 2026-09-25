@@ -268,8 +268,19 @@ tray_running() {
 }
 
 start_tray() {
+    local visible="${1:-yes}"
     tray_running && return 0
     command -v python3 >/dev/null || return 0
+    # GTK's Wayland fullscreen surface cannot be made click-through reliably
+    # by this backend. Use XWayland when available so the X11 input region can
+    # remain empty, matching the original Linux overlay behavior.
+    if [[ -n "${DISPLAY:-}" ]]; then
+        export GDK_BACKEND=x11
+    fi
+    python3 "$(dirname "$0")/aim-sight-gtk.py" \
+        "$PID_FILE" "$TRAY_PID_FILE" "$CONFIG_FILE" "$PROFILE_DIR" "$0" "$visible" \
+        >>"$RUNTIME_DIR/aim-sight-tray.log" 2>&1 &
+    return 0
 python3 - "$TRAY_PID_FILE" "$CONFIG_FILE" "$0" "$PROFILE_DIR" <<'PY' >>"$RUNTIME_DIR/aim-sight-tray.log" 2>&1 &
 import os
 import signal
@@ -414,6 +425,12 @@ PY
 
 stop_overlay() {
     local file pid
+    if tray_running; then
+        pid="$(<"$TRAY_PID_FILE")"
+        kill -USR2 "$pid" 2>/dev/null || true
+        rm -f "$PID_FILE" 2>/dev/null || true
+        return 0
+    fi
     for file in "$PID_FILE" "$LEGACY_PID_FILE"; do
         [[ -r "$file" ]] || continue
         pid="$(<"$file")"
@@ -433,31 +450,51 @@ case "$ACTION" in
     tray)
         if tray_running; then exit 0; fi
         command -v python3 >/dev/null || { echo "python3 is required" >&2; exit 1; }
-        start_tray
+        start_tray no
         wait
         exit 0
         ;;
     stop) stop_overlay; exit 0 ;;
-    restart) stop_overlay; ;;
+    restart)
+        if tray_running; then
+            kill -HUP "$(<"$TRAY_PID_FILE")" 2>/dev/null || true
+            exit 0
+        fi
+        stop_overlay
+        ;;
     status) running && echo "aim sight is running (PID $(overlay_pid))" || echo "aim sight is stopped"; exit 0 ;;
-    toggle) if running; then stop_overlay; exit 0; fi ;;
+    toggle)
+        if tray_running; then
+            kill -USR1 "$(<"$TRAY_PID_FILE")" 2>/dev/null || true
+            exit 0
+        fi
+        if running; then stop_overlay; exit 0; fi
+        ;;
 esac
 
-# Keep the tray control available even after the overlay is toggled off.
-start_tray
-
-if running; then
-    echo "aim sight is already running (PID $(<"$PID_FILE"))" >&2
+# The GTK backend owns both the tray and overlay in one process.
+if tray_running; then
+    if ! running; then
+        kill -USR1 "$(<"$TRAY_PID_FILE")" 2>/dev/null || true
+    else
+        echo "aim sight is already running (PID $(<"$PID_FILE"))" >&2
+    fi
     exit 0
 fi
 
-command -v python3 >/dev/null || { echo "python3 is required" >&2; exit 1; }
+start_tray yes
+for _ in {1..20}; do
+    running && break
+    sleep 0.05
+done
 
-# XWayland permits exact positioning and a true click-through input region.
-# Prefer it when DISPLAY is available, even inside a Wayland session.
-if [[ -n "${DISPLAY:-}" ]]; then
-    export GDK_BACKEND=x11
+if running; then
+    echo "Aim sight started (opacity $OPACITY). Settings: $ACTIVE_CONFIG_FILE"
+else
+    echo "Aim sight backend failed to start; see $RUNTIME_DIR/aim-sight-tray.log" >&2
+    exit 1
 fi
+exit 0
 
 python3 - "$PID_FILE" "$COLOR" "$STYLE" "$SIZE" "$GAP" "$THICKNESS" "$OPACITY" "$OUTLINE" "$OUTLINE_THICKNESS" "$ANTIALIAS" "$DOT" "$DOT_SIZE" "$OFFSET_X" "$OFFSET_Y" "$ACTIVE_CONFIG_FILE" <<'PY' &
 import atexit
