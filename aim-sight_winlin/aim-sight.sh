@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # A simple desktop crosshair overlay for Fedora/Linux.
-# Usage: ./aim-sight.sh [start|stop|toggle|status|tray|profiles|save-profile|delete-profile]
+# Usage: ./aim-sight.sh [start|stop|toggle|status|tray|quit|profiles|save-profile|delete-profile]
 # Styles: classic, t, dot, 4dots, plus, diamond, circle.
 # Options: --profile NAME --color red --style classic --size 22.0 --gap 7.0 --thickness 2.0 --opacity 0.75
 # Save/use a profile: ./aim-sight.sh --style diamond save-profile --profile diamond
@@ -122,7 +122,7 @@ usage() {
 
 while (($#)); do
     case "$1" in
-        start|stop|toggle|status|tray|profiles|save-profile|delete-profile|restart|cycle-color|toggle-dot) ACTION="$1" ;;
+        start|stop|toggle|status|tray|quit|profiles|save-profile|delete-profile|restart|cycle-color|toggle-dot) ACTION="$1" ;;
         --profile) PROFILE="${2:?missing profile name}"; PROFILE_EXPLICIT=1; shift ;;
         --color) COLOR="${2:?missing color}"; shift ;;
         --style) STYLE="${2:?missing style}"; shift ;;
@@ -455,6 +455,14 @@ case "$ACTION" in
         exit 0
         ;;
     stop) stop_overlay; exit 0 ;;
+    quit)
+        if tray_running; then
+            kill -TERM "$(<"$TRAY_PID_FILE")" 2>/dev/null || true
+        else
+            stop_overlay
+        fi
+        exit 0
+        ;;
     restart)
         if tray_running; then
             kill -HUP "$(<"$TRAY_PID_FILE")" 2>/dev/null || true

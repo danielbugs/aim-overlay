@@ -4,7 +4,7 @@ Aim Sight is a lightweight, click-through crosshair overlay for Windows and Linu
 
 The main implementation lives in [`aim-sight_winlin`](aim-sight_winlin/):
 
-- `aim-sight.py` / `aim-sight.pyw` — the portable Python implementation for Windows and Linux.
+- `aim-sight-crossplat.py` / `aim-sight-crossplat.pyw` — the portable Python implementation for Windows and Linux.
 - `aim-sight.sh` — the dedicated Linux launcher with a native GTK/Ayatana tray menu.
 - `profiles/` — ready-to-use style profiles.
 
@@ -40,26 +40,28 @@ python3 -m pip install -r requirements.txt
 
 On Windows, `install-requirements.bat` can also be double-clicked to install the requirements.
 
+To start the tray application automatically when you sign in to Windows, double-click `install-windows-autostart.bat`. It creates an `Aim Sight.lnk` shortcut in the current user's Startup folder, equivalent to `shell:startup`.
+
 ### Start and control the overlay
 
 Windows:
 
 ```powershell
 cd aim-sight_winlin
-py aim-sight.py tray
+py aim-sight-crossplat.py tray
 ```
 
-For a console-free Windows launch, double-click `aim-sight.pyw` or run:
+For a console-free Windows launch, double-click `aim-sight-crossplat.pyw` or run:
 
 ```powershell
-pyw aim-sight.pyw tray
+pyw aim-sight-crossplat.pyw tray
 ```
 
 Linux:
 
 ```bash
 cd aim-sight_winlin
-python3 aim-sight.py tray
+python3 aim-sight-crossplat.py tray
 ```
 
 The command-line actions are available on both platforms:
@@ -81,9 +83,9 @@ toggle-dot     Toggle the center dot
 For example:
 
 ```bash
-python3 aim-sight.py --style diamond --color cyan --opacity 0.8 start
-python3 aim-sight.py --profile circle restart
-python3 aim-sight.py toggle
+python3 aim-sight-crossplat.py --style diamond --color cyan --opacity 0.8 start
+python3 aim-sight-crossplat.py --profile circle restart
+python3 aim-sight-crossplat.py toggle
 ```
 
 Replace `python3` with `py` on Windows.
@@ -116,6 +118,20 @@ The included installer detects Fedora, Debian/Ubuntu, and Arch-based systems:
 cd aim-sight_winlin
 chmod +x install-linux-dependencies.sh
 ./install-linux-dependencies.sh
+```
+
+To start Aim Sight automatically when your KDE graphical session begins, install the user service:
+
+```bash
+./install-autostart.sh
+```
+
+Manage it with:
+
+```bash
+systemctl --user status aim-sight.service
+systemctl --user restart aim-sight.service
+systemctl --user disable --now aim-sight.service
 ```
 
 On Debian/Ubuntu-based systems, the equivalent packages are commonly available as:
@@ -159,7 +175,7 @@ Profiles are plain text `.conf` files. The bundled profiles are in [`aim-sight_w
 
 ```bash
 ./aim-sight.sh --profile diamond restart
-python3 aim-sight.py --profile 4dots restart
+python3 aim-sight-crossplat.py --profile 4dots restart
 ```
 
 To create a profile from custom settings:
@@ -172,7 +188,7 @@ To create a profile from custom settings:
 The equivalent Python command is:
 
 ```bash
-python3 aim-sight.py --style plus --color yellow --size 9 --gap 3 save-profile --profile my-plus
+python3 aim-sight-crossplat.py --style plus --color yellow --size 9 --gap 3 save-profile --profile my-plus
 ```
 
 Edit a profile while Aim Sight is running to see valid changes picked up automatically. Invalid or partially edited values are ignored until the file is valid again.
@@ -208,8 +224,8 @@ OFFSET_Y=1.0
 ```text
 aim-overlay/
 ├── aim-sight_winlin/
-│   ├── aim-sight.py       # Portable Python entry point
-│   ├── aim-sight.pyw      # Console-free Windows launcher
+│   ├── aim-sight-crossplat.py       # Portable Python entry point
+│   ├── aim-sight-crossplat.pyw      # Console-free Windows launcher
 │   ├── aim-sight.sh       # Dedicated Linux launcher
 │   ├── default.conf       # Default settings template
 │   └── profiles/          # Built-in style profiles

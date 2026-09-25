@@ -1,0 +1,14 @@
+[Unit]
+Description=Aim Sight crosshair overlay
+After=graphical-session.target
+Wants=graphical-session.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=@INSTALL_DIR@
+ExecStart=/usr/bin/env bash @INSTALL_DIR@/aim-sight.sh start
+ExecStop=/usr/bin/env bash @INSTALL_DIR@/aim-sight.sh quit
+
+[Install]
+WantedBy=graphical-session.target
