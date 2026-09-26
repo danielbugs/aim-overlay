@@ -21,7 +21,6 @@ VISIBLE = VISIBLE == "yes"
 ICON_FILE = os.path.join(os.path.dirname(TRAY_PID_FILE), "aim-sight-tray.svg")
 
 VALUES = {}
-CONFIG_MTIME = None
 WINDOW = None
 INDICATOR = None
 DISPLAY = Gdk.Display.get_default()
@@ -223,6 +222,17 @@ def reload_config(*_args):
     return True
 
 
+def reload_config_once(*_args):
+    """Reload once when a SIGHUP requests an immediate refresh.
+
+    GLib idle callbacks are repeated while they return True.  The regular
+    polling callback above needs that behavior, but a signal-triggered
+    refresh must be removed after its first invocation.
+    """
+    reload_config()
+    return False
+
+
 def keep_above():
     if VISIBLE:
         WINDOW.set_keep_above(True)
@@ -259,7 +269,7 @@ def handle_signal(signum, _frame):
     elif signum == signal.SIGUSR2:
         GLib.idle_add(set_visible, False)
     elif signum == signal.SIGHUP:
-        GLib.idle_add(reload_config)
+        GLib.idle_add(reload_config_once)
 
 
 def build_tray():
@@ -314,7 +324,10 @@ def build_tray():
     color_item.connect("activate", lambda *_: run_shell_action("cycle-color"))
     menu.append(color_item)
     reload_item = Gtk.MenuItem(label="Reload confs")
-    reload_item.connect("activate", reload_profiles)
+    def reload_all(*_args):
+        reload_profiles()
+        reload_config_once()
+    reload_item.connect("activate", reload_all)
     menu.append(reload_item)
     restart_item = Gtk.MenuItem(label="Restart app")
     restart_item.connect("activate", lambda *_: reload_config())
@@ -369,7 +382,6 @@ else:
             native.input_shape_combine_region(cairo.Region(), 0, 0)
         if hasattr(native, "raise_"):
             native.raise_()
-GLib.timeout_add(500, reload_config)
 GLib.timeout_add(1000, keep_above)
 if VISIBLE:
     set_visible(True)
